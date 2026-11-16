@@ -1,5 +1,8 @@
 <?php
 namespace Dwes\ProyectoVideoclub;
+use Dwes\ProyectoVideoclub\Util\SoporteYaAlquiladoException;
+use Dwes\ProyectoVideoclub\Util\SoporteNoEncontradoException;
+use Dwes\ProyectoVideoclub\Util\CupoSuperadoException;
  class Cliente {
      public string $nombre;
      private int $numero;
@@ -47,8 +50,7 @@ namespace Dwes\ProyectoVideoclub;
      public function alquilar(Soporte $s): bool
      {
         if($this->tieneAlquilado($s)){
-            echo "<br>Ya está alquilado";
-            return $this;
+            throw new SoporteYaAlquiladoException("El soporte ".$s->getNumero()." ya está alquilado.");
         }
         if($this->soportesAlquilados>=$this->maxAlquilerConcurrente){
             echo "<br>No se puede igualar ni superar el cupo de alquileres.";
