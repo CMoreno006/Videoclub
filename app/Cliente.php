@@ -47,36 +47,36 @@ use Dwes\ProyectoVideoclub\Util\CupoSuperadoException;
          return false;
      }
 
-     public function alquilar(Soporte $s): bool
+     public function alquilar(Soporte $s): self
      {
-        if($this->tieneAlquilado($s)){
-            throw new SoporteYaAlquiladoException("El soporte ".$s->getNumero()." ya está alquilado.");
-        }
+         if ($s->alquilado)
+         {
+             throw new SoporteYaAlquiladoException("El soporte " . $s->getNumero() . " ya está alquilado");
+         }
         if($this->soportesAlquilados>=$this->maxAlquilerConcurrente){
-            echo "<br>No se puede igualar ni superar el cupo de alquileres.";
+            throw new CupoSuperadoException("<br>No se puede igualar ni superar el cupo de alquileres.");
         }
 
         $this->soportesAlquilados[] = $s;
         $this->numSoportesAlquilados++;
         echo "Soporte: ".$s->getNumero()." alquilado<br>";
+         $s->alquilado = true;
         return $this;
      }
 
-     public function devolver(int $numSoporte): bool
+     public function devolver(int $numSoporte): self
      {
-         foreach ($this->soportesAlquilados as $key => $soporte) {
-             if ($soporte->getNumero() === $numSoporte) {
-                 unset($this->soportesAlquilados[$key]);
+         foreach ($this->soportesAlquilados as $indice => $alquilado) {
+             if ($alquilado->getNumero() == $numSoporte) {
+                 $alquilado->alquilado = false;
+                 unset($this->soportesAlquilados[$indice]);
                  $this->soportesAlquilados = array_values($this->soportesAlquilados);
-                 $this->numSoportesAlquilados--;
-                 echo "<br>Soporte devuelto correctamente.";
-                 return true;
+                 return $this;
              }
          }
-         echo "<br>No se ha podido encontrar el soporte en los alquileres del cliente.";
-         return false;
-     }
 
+         throw new SoporteNoEncontradoException("No tienes alquilado el soporte " . $numSoporte);
+     }
      public function listaAlquileres(): void {
          echo "<br>El cliente " . $this->nombre . " tiene " . $this->numSoportesAlquilados . " alquileres:";
          foreach ($this->soportesAlquilados as $soporte) {

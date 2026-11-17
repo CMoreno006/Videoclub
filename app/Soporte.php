@@ -2,6 +2,7 @@
 namespace Dwes\ProyectoVideoclub;
 abstract class Soporte implements Resumible{
     public String $titulo;
+    public bool $alquilado=false;
     protected int $numero;
     private float $precio;
 

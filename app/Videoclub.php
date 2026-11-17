@@ -1,11 +1,17 @@
 <?php
 namespace Dwes\ProyectoVideoclub;
+use Dwes\ProyectoVideoclub\Util\VideoclubException;
+use Dwes\ProyectoVideoclub\Util\SoporteNoEncontradoException;
+use Dwes\ProyectoVideoclub\Util\ClienteNoEncontradoException;
+use Dwes\ProyectoVideoclub\Util\SoporteYaAlquiladoException;
 class Videoclub {
     private $nombre;
     private $productos=[];
     private $numProductos=0;
     private $socios=[];
     private $numSocios=0;
+    private $numProductosAlquilados = 0;
+    private $numTotalAlquileres = 0;
 
     /**
      * @param $nombre
@@ -20,6 +26,15 @@ class Videoclub {
 
     }
 
+    public function getNumProductosAlquilados(): int
+    {
+        return $this->numProductosAlquilados;
+    }
+
+    public function getNumTotalAlquileres(): int
+    {
+        return $this->numTotalAlquileres;
+    }
     private function incluirProducto(Soporte $producto){
         $this->productos[] = $producto;
         $this->numProductos++;
@@ -63,28 +78,97 @@ class Videoclub {
         }
     }
 
-    public function alquilaSocioProducto($numeroCliente, $numeroSoporte):self {
-        $clienteEncontrado = null;
-        $soporteEncontrado = null;
+    public function alquilarSocioProducto($numeroCliente, $numeroSoporte): self
+    {
+        try
+        {
+            $cliente = $this->buscarSocio($numeroCliente);
+            $soporte = $this->buscarProducto($numeroSoporte);
+            $cliente->alquilar($soporte);
 
-        foreach ($this->socios as $socio) {
-            if ($socio->getNumero() === $numeroCliente) {
-                $clienteEncontrado = $socio;
-                break;
+            $this->numProductosAlquilados++;
+            $this->numTotalAlquileres++;
+            echo "<br>Soporte " . $numeroSoporte . " alquilado al socio " . $numeroCliente;
+        }
+        catch (VideoclubException $e)
+        {
+            echo "<br>" . $e->getMessage();
+        }
+        return $this;
+    }
+
+    private function buscarSocio(int $numero): Cliente
+    {
+        foreach ($this->socios as $socio)
+        {
+            if ($socio->getNumero() === $numero)
+            {
+                return $socio;
             }
         }
+        throw new ClienteNoEncontradoException("No existe el socio " . $numero);
+    }
 
-        foreach ($this->productos as $producto) {
-            if ($producto->getNumero() === $numeroSoporte) {
-                $soporteEncontrado = $producto;
-                break;
+    private function buscarProducto(int $numero): Soporte
+    {
+        foreach ($this->productos as $producto)
+        {
+            if ($producto->getNumero() === $numero)
+            {
+                return $producto;
             }
         }
+        throw new SoporteNoEncontradoException("No existe el producto " . $numero);
+    }
 
-        if ($clienteEncontrado !== null && $soporteEncontrado !== null) {
-            $clienteEncontrado->alquilar($soporteEncontrado);
-        } else {
-            echo "<br>No se ha encontrado el cliente o el soporte.";
+    public function alquilarSocioProductos(int $numSocio, array $numerosProductos): self
+    {
+        try
+        {
+            $this->buscarSocio($numSocio);
+
+            foreach ($numerosProductos as $numero)
+            {
+                $soporte = $this->buscarProducto($numero);
+                if ($soporte->alquilado)
+                {
+                    throw new SoporteYaAlquiladoException("El soporte " . $numero . " no está disponible. No se alquila ninguno");
+                }
+            }
+
+            foreach ($numerosProductos as $numero)
+            {
+                $this->alquilaSocioProducto($numSocio, $numero);
+            }
+        }
+        catch (VideoclubException $e)
+        {
+            echo "<br>" . $e->getMessage();
+        }
+        return $this;
+    }
+
+    public function devolverSocioProducto(int $numSocio, int $numeroProducto): self
+    {
+        try
+        {
+            $cliente = $this->buscarSocio($numSocio);
+            $cliente->devolver($numeroProducto);
+            $this->numProductosAlquilados--;
+            echo "<br>Soporte " . $numeroProducto . " devuelto por el socio " . $numSocio;
+        }
+        catch (VideoclubException $e)
+        {
+            echo "<br>" . $e->getMessage();
+        }
+        return $this;
+    }
+
+    public function devolverSocioProductos(int $numSocio, array $numerosProductos): self
+    {
+        foreach ($numerosProductos as $numero)
+        {
+            $this->devolverSocioProducto($numSocio, $numero);
         }
         return $this;
     }
